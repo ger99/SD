@@ -22,7 +22,9 @@ import javax.inject.Inject;
 
 import py.una.pol.personas.dao.PersonaDAO;
 import py.una.pol.personas.model.Persona;
+import py.una.pol.personas.model.Relacion;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -35,6 +37,44 @@ public class PersonaService {
 
     @Inject
     private PersonaDAO dao;
+    
+    public long asociar(Relacion r) throws Exception{
+    	log.info("Asociando --> idPerosna:" + r.getId_persona() + " | idAsignatura" + r.getId_asignatura());
+        long op;
+    	try {
+        	op = dao.asociar(r);
+        }catch(Exception e) {
+        	log.severe("Error Asociando --> idPerosna:" + r.getId_persona() + " | idAsignatura" + r.getId_asignatura());
+        	throw e;
+        }
+    	if(op > 0) {
+    		log.info("Relacion Exito --> idPerosna:" + r.getId_persona() + " | idAsignatura" + r.getId_asignatura());	
+    	}else if( op == 0) {
+    		log.info("Relacion ya existe --> idPerosna:" + r.getId_persona() + " | idAsignatura" + r.getId_asignatura());
+    	}else {
+    		log.info("Ocurrio un Error de Transaccion");
+    	}
+    	return op;
+    }
+    
+    public long desasociar(Relacion r) throws Exception{
+    	log.info("desAsociando --> idPerosna: " + r.getId_persona() + " | idAsignatura: " + r.getId_asignatura());
+        long op;
+    	try {
+        	op = dao.desasociar(r);
+        }catch(Exception e) {
+        	log.severe("Error desAsociando --> idPerosna: " + r.getId_persona() + " | idAsignatura: " + r.getId_asignatura());
+        	throw e;
+        }
+    	if(op > 0) {
+    		log.info("desAsociando Exito --> idPerosna: " + r.getId_persona() + " | idAsignatura: " + r.getId_asignatura());	
+    	}else if( op == 0) {
+    		log.info("Relacion no existe --> idPerosna: " + r.getId_persona() + " | idAsignatura: " + r.getId_asignatura());
+    	}else {
+    		log.info("Ocurrio un Error de Transaccion");
+    	}
+    	return op;
+    }
 
     public void crear(Persona p) throws Exception {
         log.info("Creando Persona: " + p.getNombre() + " " + p.getApellido());
@@ -58,4 +98,17 @@ public class PersonaService {
     public long borrar(long cedula) throws Exception {
     	return dao.borrar(cedula);
     }
+
+	public List<String> listarAsignaturas(long cedula) {
+		log.info("Listar Asignaturas | cedula: "+cedula);
+        List<String> asignaturas;
+		try {
+        	asignaturas = dao.listarAsignaturas(cedula);
+        }catch(Exception e) {
+        	log.severe("ERROR al crear persona: " + e.getLocalizedMessage() );
+        	throw e;
+        }
+        log.info("Lista asignatura creada | cedula: "+cedula);
+		return asignaturas;
+	}
 }

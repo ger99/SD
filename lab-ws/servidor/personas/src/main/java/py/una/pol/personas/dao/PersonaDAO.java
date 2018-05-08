@@ -13,6 +13,7 @@ import javax.ejb.Stateless;
 import javax.inject.Inject;
 
 import py.una.pol.personas.model.Persona;
+import py.una.pol.personas.model.Relacion;
 
 @Stateless
 public class PersonaDAO {
@@ -98,7 +99,7 @@ public class PersonaDAO {
 	
     public long insertar(Persona p) throws SQLException {
 
-        String SQL = "INSERT INTO persona(cedula, nombre,apellido) "
+        String SQL = "INSERT INTO persona(cedula, nombre, apellido) "
                 + "VALUES(?,?,?)";
  
         long id = 0;
@@ -135,11 +136,110 @@ public class PersonaDAO {
         	}
         }
         	
-        return id;
-    	
-    	
+        return id;    	    	
     }
 	
+    public long asociar(Relacion r) throws SQLException{
+    	long id = -1;
+        Connection conn = null;
+    	String sql = "SELECT id, id_persona, id_asignatura FROM persona_asignatura WHERE id_persona = ? AND id_asignatura = ?";
+    	String insertSQL = "INSERT INTO persona_asignatura (id_persona, id_asignatura) VALUES ( ?, ?)";
+    	try 
+        {
+        	conn = Bd.connect();
+        	PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            pstmt.setLong(1, r.getId_persona());
+            pstmt.setLong(2, r.getId_asignatura());
+            
+            boolean existRelacion = false;
+            int affectedRows = 0;
+            ResultSet rs= pstmt.executeQuery();
+            if(rs.next()) {	
+            	id = 0;
+            	existRelacion = true;
+            }
+            PreparedStatement pstmtIns = conn.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS);
+            if(!existRelacion) {            	
+            	pstmtIns.setLong(1,r.getId_persona());
+            	pstmtIns.setLong(2, r.getId_asignatura());
+            	affectedRows = pstmtIns.executeUpdate();
+            }
+            
+            // check the affected rows 
+            if (affectedRows > 0) {
+                // get the ID back
+                try (ResultSet rss = pstmtIns.getGeneratedKeys()) {
+                    if (rss.next()) {
+                        id = rss.getLong(1);
+                    }
+                } catch (SQLException ex) {
+                	throw ex;
+                }
+            }
+            
+        } catch (SQLException ex) {
+        	log.severe("Error en la actualizacion: " + ex.getMessage());
+        }
+        finally  {
+        	try{
+        		conn.close();
+        	}catch(Exception ef){
+        		log.severe("No se pudo cerrar la conexion a BD: "+ ef.getMessage());
+        	}
+        }
+    	return id;
+    }
+    
+    public long desasociar(Relacion r) throws SQLException{
+    	long id = -1;
+        Connection conn = null;
+    	String sql = "SELECT id, id_persona, id_asignatura FROM persona_asignatura WHERE id_persona = ? AND id_asignatura = ?";
+    	String insertSQL = "DELETE FROM persona_asignatura WHERE id_persona = ? AND id_asignatura = ?";
+    	try 
+        {
+        	conn = Bd.connect();
+        	PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            pstmt.setLong(1, r.getId_persona());
+            pstmt.setLong(2, r.getId_asignatura());
+            
+            boolean existRelacion = false;
+            int affectedRows = 0;
+            ResultSet rs= pstmt.executeQuery();
+            if(rs.next()) {	            	
+            	existRelacion = true;
+            }else {		id = 0;}
+            
+            PreparedStatement pstmtIns = conn.prepareStatement(insertSQL, Statement.RETURN_GENERATED_KEYS);
+            if(existRelacion) {            	
+            	pstmtIns.setLong(1,r.getId_persona());
+            	pstmtIns.setLong(2, r.getId_asignatura());
+            	affectedRows = pstmtIns.executeUpdate();
+            }
+            
+            // check the affected rows 
+            if (affectedRows > 0) {
+                // get the ID back
+                try (ResultSet rss = pstmtIns.getGeneratedKeys()) {
+                    if (rss.next()) {
+                        id = rss.getLong(1);
+                    }
+                } catch (SQLException ex) {
+                	throw ex;
+                }
+            }
+            
+        } catch (SQLException ex) {
+        	log.severe("Error en la actualizacion: " + ex.getMessage());
+        }
+        finally  {
+        	try{
+        		conn.close();
+        	}catch(Exception ef){
+        		log.severe("No se pudo cerrar la conexion a BD: "+ ef.getMessage());
+        	}
+        }
+    	return id;
+    }
 
     public long actualizar(Persona p) throws SQLException {
 
@@ -221,6 +321,37 @@ public class PersonaDAO {
         }
         return id;
     }
-    
 
+	
+
+	public List<String> listarAsignaturas(long cedula) {
+		String SQL = "SELECT nombre FROM asignatura WHERE id IN (SELECT id_asignatura FROM persona_asignatura WHERE id_persona = ?) ";
+		List<String> list = new ArrayList<String>();
+		Connection conn = null;
+		String nombre;
+        try 
+        {
+        	conn = Bd.connect();
+        	PreparedStatement pstmt = conn.prepareStatement(SQL);
+        	pstmt.setLong(1, cedula);        	
+        	ResultSet rs = pstmt.executeQuery();
+        	while(rs.next()) {
+        		nombre = new String(rs.getString(1));
+        		list.add(nombre);
+        	}
+        	
+        } catch (SQLException ex) {
+        	log.severe("Error en la seleccion: " + ex.getMessage());
+        }
+        finally  {
+        	try{
+        		conn.close();
+        	}catch(Exception ef){
+        		log.severe("No se pudo cerrar la conexion a BD: "+ ef.getMessage());
+        	}
+        }
+		return list;
+	}
+    
+    
 }

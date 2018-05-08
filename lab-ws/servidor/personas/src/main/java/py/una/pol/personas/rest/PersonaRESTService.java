@@ -37,6 +37,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import py.una.pol.personas.model.Persona;
+import py.una.pol.personas.model.Relacion;
 import py.una.pol.personas.service.PersonaService;
 
 /**
@@ -58,6 +59,13 @@ public class PersonaRESTService {
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     public List<Persona> listar() {
         return personaService.seleccionar();
+    }
+    
+    @GET
+    @Path("/asignaturas/{cedula:[0-9][0-9]*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<String> listarAsignaturas(@PathParam("cedula") long cedula){
+    	return personaService.listarAsignaturas(cedula);
     }
 
     @GET
@@ -86,13 +94,85 @@ public class PersonaRESTService {
         return p;
     }
 
+    @POST
+    @Path("/asociar")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response asociar(Relacion r) {
+    	Response.ResponseBuilder builder = null;
+    	long res;
+    	try {
+            res = personaService.asociar(r);
+            
+            String idP = String.valueOf(r.getId_persona());
+            String idA = String.valueOf(r.getId_asignatura());
+            
+            Map<String, String> responseData = new HashMap<>();
+            if(res > 0) { 	
+            	responseData.put("status", "exito");
+            }else {
+            	responseData.put("status", "error");
+            }
+            
+            responseData.put("idpersona", idP);
+            responseData.put("idasignatura", idA);
+            builder = Response.status(201).entity(responseData);                                    
+        } catch (SQLException e) {
+            // Handle the unique constrain violation
+            Map<String, String> responseObj = new HashMap<>();
+            responseObj.put("bd-error", e.getLocalizedMessage());
+            builder = Response.status(Response.Status.CONFLICT).entity(responseObj);
+        } catch (Exception e) {
+            // Handle generic exceptions
+            Map<String, String> responseObj = new HashMap<>();
+            responseObj.put("error", e.getMessage());
+            builder = Response.status(Response.Status.BAD_REQUEST).entity(responseObj);
+        }
+        return builder.build();
+    }
     
+    @POST
+    @Path("/desasociar")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response desasociar(Relacion r) {
+    	Response.ResponseBuilder builder = null;
+    	long res;
+    	try {
+            res = personaService.desasociar(r);
+            
+            String idP = String.valueOf(r.getId_persona());
+            String idA = String.valueOf(r.getId_asignatura());
+            
+            Map<String, String> responseData = new HashMap<>();
+            if(res > 0) { 	
+            	responseData.put("status", "exito");
+            }else {
+            	responseData.put("status", "error");
+            }
+            
+            responseData.put("idpersona", idP);
+            responseData.put("idasignatura", idA);
+            builder = Response.status(201).entity(responseData);                                    
+        } catch (SQLException e) {
+            // Handle the unique constrain violation
+            Map<String, String> responseObj = new HashMap<>();
+            responseObj.put("bd-error", e.getLocalizedMessage());
+            builder = Response.status(Response.Status.CONFLICT).entity(responseObj);
+        } catch (Exception e) {
+            // Handle generic exceptions
+            Map<String, String> responseObj = new HashMap<>();
+            responseObj.put("error", e.getMessage());
+            builder = Response.status(Response.Status.BAD_REQUEST).entity(responseObj);
+        }
+        return builder.build();
+    }
     
     /**
      * Creates a new member from the values provided. Performs validation, and will return a JAX-RS response with either 200 ok,
      * or with a map of fields, and related errors.
      */
-    @POST
+    @POST    
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response crear(Persona p) {
@@ -101,10 +181,11 @@ public class PersonaRESTService {
 
         try {
             personaService.crear(p);
-            // Create an "ok" response
-            
+            // Create an "ok" response            
             //builder = Response.ok();
-            builder = Response.status(201).entity("Persona creada exitosamente");
+            Map<String, String> responseData = new HashMap<>();
+            responseData.put("status", "exito");
+            builder = Response.status(201).entity(responseData);
             
         } catch (SQLException e) {
             // Handle the unique constrain violation
@@ -119,8 +200,10 @@ public class PersonaRESTService {
         }
 
         return builder.build();
-    }
+   }
 
+    
+    
    @DELETE
    @Path("/{cedula}")
    public Response borrar(@PathParam("cedula") long cedula)
